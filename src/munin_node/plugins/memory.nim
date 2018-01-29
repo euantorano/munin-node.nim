@@ -26,7 +26,7 @@ const
 type
   DWORDLONG = uint64
 
-  MEMORYSTATUSEX {.incompleteStruct.} = object
+  MEMORYSTATUSEX {.importc: "MEMORYSTATUSEX", header: "Windows.h", incompleteStruct.} = object
     dwLength: DWORD
     dwMemoryLoad: DWORD
     ullTotalPhys: DWORDLONG

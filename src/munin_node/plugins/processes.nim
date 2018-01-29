@@ -27,7 +27,7 @@ var
 type
   ProcessesPlugin* = object
 
-  PROCESSENTRY32 {.incompleteStruct.} = object
+  PROCESSENTRY32 {.importc: "PROCESSENTRY32", header: "TlHelp32.h", incompleteStruct.} = object
     dwSize: DWORD
     cntUsage: DWORD
     th32ProcessID: DWORD

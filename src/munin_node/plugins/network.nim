@@ -25,7 +25,7 @@ const
     ".\L"
 
 type
-  MIB_TCPSTATS {.incompleteStruct.} = object
+  MIB_TCPSTATS {.importc: "MIB_TCPSTATS", header: "Iphlpapi.h", incompleteStruct.} = object
     dwRtoAlgorithm: DWORD
     dwRtoMin: DWORD
     dwRtoMax: DWORD
@@ -44,7 +44,7 @@ type
 
   PMIB_TCPSTATS = ptr MIB_TCPSTATS
 
-  MIB_UDPSTATS {.incompleteStruct.} = object
+  MIB_UDPSTATS {.importc: "MIB_UDPSTATS", header: "Iphlpapi.h", incompleteStruct.} = object
     dwInDatagrams: DWORD
     dwNoPorts: DWORD
     dwInErrors: DWORD

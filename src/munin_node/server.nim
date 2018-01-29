@@ -2,7 +2,7 @@
 
 import ./utils, ./plugin, ./plugins/processes, ./plugins/memory, ./plugins/network, ./plugins/uptime
 
-import asyncdispatch, asyncnet, nativesockets
+import asyncdispatch, asyncnet, nativesockets, tables
 
 const
   DefaultListenAddress* = 4949'u16
@@ -26,6 +26,9 @@ type
     listen: bool
     hostname: string
 
+var
+  plugins {.threadvar.}: TableRef[string, Plugin]
+
 proc initServer*(port: uint16 = DefaultListenAddress, hostname: string = ""): Server =
   ## Intiailise a new server and bind it, ready to accept incoming connections.
   result = Server(
@@ -34,58 +37,56 @@ proc initServer*(port: uint16 = DefaultListenAddress, hostname: string = ""): Se
     hostname: if len(hostname) == 0: getHostname() else: hostname
   )
 
+  if isNil(plugins):
+    # TODO: Automate this - could be done by a macro?
+    plugins = newTable[string, Plugin](@[
+      (MemoryPluginName, initMemoryPlugin()),
+      (NetworkPluginName, initNetworkPlugin()),
+      (ProcessesPluginName, initProcessesPlugin()),
+      (UptimePluginName, initUptimePlugin())
+    ])
+
   result.sock.setSockOpt(OptReuseAddr, true)
   result.sock.bindAddr(Port(port))
   result.sock.listen()
 
   echo "Server started listening on port ", port, " with hostname: ", result.hostname
 
+proc listPlugins(): string =
+  result = ""
+
+  for pluginName in plugins.keys():
+    result.add(pluginName & " ")
+
+  result.add("\L")
+
 proc processFetchRequest(request: string): string =
   let startIndex = if len(request) > 6 and request[5] == ' ': 6 else: 5
   let requestedConfig = request[startIndex..^1]
 
-  var plugin: Plugin
+  if requestedConfig in plugins:
+    try:
+      result = plugins[requestedConfig].values()
+    except:
+      echo "Unknown exception ", repr(getCurrentException()) , ": ", getCurrentExceptionMsg()
 
-  case requestedConfig
-  of ProcessesPluginName:
-    plugin = initProcessesPlugin()
-  of MemoryPluginName:
-    plugin = initMemoryPlugin()
-  of NetworkPluginName:
-    plugin = initNetworkPlugin()
-  of UptimePluginName:
-    plugin = initUptimePlugin()
+      result = UnknownErrorResponse
   else:
     result = UnknownServiceResponse
-    return
-
-  try:
-    result = plugin.values()
-  except:
-    echo "Unknown exception ", repr(getCurrentException()) , ": ", getCurrentExceptionMsg()
-
-    result = UnknownErrorResponse
 
 proc processConfigRequest(request: string): string =
   let startIndex = if len(request) > 7 and request[6] == ' ': 7 else: 6
   let requestedConfig = request[startIndex..^1]
 
-  var plugin: Plugin
+  if requestedConfig in plugins:
+    try:
+      result = plugins[requestedConfig].config()
+    except:
+      echo "Unknown exception ", repr(getCurrentException()) , ": ", getCurrentExceptionMsg()
 
-  case requestedConfig
-  of ProcessesPluginName:
-    plugin = initProcessesPlugin()
-  of MemoryPluginName:
-    plugin = initMemoryPlugin()
-  of NetworkPluginName:
-    plugin = initNetworkPlugin()
-  of UptimePluginName:
-    plugin = initUptimePlugin()
+      result = UnknownErrorResponse
   else:
     result = UnknownServiceResponse
-    return
-
-  result = plugin.config()
 
 proc receiveFromClient(server: Server, address: string, client: AsyncSocket) {.async.} =
   var buffer = newFutureVar[string]("munin_node.server.receiveFromClient")
@@ -107,7 +108,7 @@ proc receiveFromClient(server: Server, address: string, client: AsyncSocket) {.a
     elif len(buffer.mget) >= 4 and buffer.mget[0..3] == "quit":
       break
     elif len(buffer.mget) >= 4 and buffer.mget[0..3] == "list":
-      response = ProcessesPluginName & " " & MemoryPluginName & " " & NetworkPluginName & " " & UptimePluginName & " \L"
+      response = listPlugins()
     elif len(buffer.mget) >= 5 and buffer.mget[0..4] == "nodes":
       # This version only supports one node
       response = server.hostname & "\L.\L"
