@@ -23,41 +23,51 @@ const
     "free.info Wasted memory. Memory that is not used for anything at all.\L" &
     ".\L"
 
-type
-  DWORDLONG = uint64
+when defined(windows):
+  type
+    DWORDLONG = uint64
 
-  MEMORYSTATUSEX {.importc: "MEMORYSTATUSEX", header: "Windows.h", incompleteStruct.} = object
-    dwLength: DWORD
-    dwMemoryLoad: DWORD
-    ullTotalPhys: DWORDLONG
-    ullAvailPhys: DWORDLONG
-    ullTotalPageFile: DWORDLONG
-    ullAvailPageFile: DWORDLONG
-    ullTotalVirtual: DWORDLONG
-    ullAvailVirtual: DWORDLONG
-    ullAvailExtendedVirtual: DWORDLONG
+    MEMORYSTATUSEX {.importc: "MEMORYSTATUSEX", header: "Windows.h", incompleteStruct.} = object
+      dwLength: DWORD
+      dwMemoryLoad: DWORD
+      ullTotalPhys: DWORDLONG
+      ullAvailPhys: DWORDLONG
+      ullTotalPageFile: DWORDLONG
+      ullAvailPageFile: DWORDLONG
+      ullTotalVirtual: DWORDLONG
+      ullAvailVirtual: DWORDLONG
+      ullAvailExtendedVirtual: DWORDLONG
 
-  LPMEMORYSTATUSEX = ptr MEMORYSTATUSEX
+    LPMEMORYSTATUSEX = ptr MEMORYSTATUSEX
 
 proc memoryConfig(plugin: Plugin): string =
   ## Get the plugin graph configuration.
   result = MemoryPluginConfig
 
-proc GlobalMemoryStatusEx(lpBuffer: LPMEMORYSTATUSEX): WINBOOL {.stdcall, dynlib: "kernel32", importc: "GlobalMemoryStatusEx".}
-  ## Retrieves information about the system's current usage of both physical and virtual memory.
+when defined(windows):
+  proc GlobalMemoryStatusEx(lpBuffer: LPMEMORYSTATUSEX): WINBOOL {.stdcall, dynlib: "kernel32", importc: "GlobalMemoryStatusEx".}
+    ## Retrieves information about the system's current usage of both physical and virtual memory.
 
-proc memoryValues(plugin: Plugin): string =
-  ## Get the plugin values.
-  var mem: MEMORYSTATUSEX
-  mem.dwLength = DWORD(sizeof(mem))
+  proc memoryValues(plugin: Plugin): string =
+    ## Get the plugin values.
+    var mem: MEMORYSTATUSEX
+    mem.dwLength = DWORD(sizeof(mem))
 
-  if GlobalMemoryStatusEx(addr mem) == 0:
-    raiseOSError(osLastError())
+    if GlobalMemoryStatusEx(addr mem) == 0:
+      raiseOSError(osLastError())
 
-  result = "apps.value " & $(mem.ullTotalPhys - mem.ullAvailPhys) & "\L" &
-    "swap.value " & $(mem.ullTotalPageFile - mem.ullAvailPageFile) & "\L" &
-    "free.value " & $mem.ullAvailPhys & "\L" &
-    ".\L"
+    result = "apps.value " & $(mem.ullTotalPhys - mem.ullAvailPhys) & "\L" &
+      "swap.value " & $(mem.ullTotalPageFile - mem.ullAvailPageFile) & "\L" &
+      "free.value " & $mem.ullAvailPhys & "\L" &
+      ".\L"
+elif defined(posix):
+  proc memoryValues(plugin: Plugin): string =
+    ## Get the plugin values.
+    result = "apps.value 0\L" &
+      "swap.value 0\L" &
+      "free.value 0\L.\L"
+else:
+  {.error: "Memory plugin is not implemented for your OS".}
 
 proc initMemoryPlugin*(): Plugin =
   ## Create a new instance of the memory plugin to get current system memory status.

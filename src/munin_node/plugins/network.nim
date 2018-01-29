@@ -24,69 +24,81 @@ const
     "down.max 54000000\L" &
     ".\L"
 
-type
-  MIB_TCPSTATS {.importc: "MIB_TCPSTATS", header: "Iphlpapi.h", incompleteStruct.} = object
-    dwRtoAlgorithm: DWORD
-    dwRtoMin: DWORD
-    dwRtoMax: DWORD
-    dwMaxConn: DWORD
-    dwActiveOpens: DWORD
-    dwPassiveOpens: DWORD
-    dwAttemptFails: DWORD
-    dwEstabResets: DWORD
-    dwCurrEstab: DWORD
-    dwInSegs: DWORD
-    dwOutSegs: DWORD
-    dwRetransSegs: DWORD
-    dwInErrs: DWORD
-    dwOutRsts: DWORD
-    dwNumConns: DWORD
+when defined(windows):
+  type
+    MIB_TCPSTATS {.importc: "MIB_TCPSTATS", header: "Iphlpapi.h", incompleteStruct.} = object
+      dwRtoAlgorithm: DWORD
+      dwRtoMin: DWORD
+      dwRtoMax: DWORD
+      dwMaxConn: DWORD
+      dwActiveOpens: DWORD
+      dwPassiveOpens: DWORD
+      dwAttemptFails: DWORD
+      dwEstabResets: DWORD
+      dwCurrEstab: DWORD
+      dwInSegs: DWORD
+      dwOutSegs: DWORD
+      dwRetransSegs: DWORD
+      dwInErrs: DWORD
+      dwOutRsts: DWORD
+      dwNumConns: DWORD
 
-  PMIB_TCPSTATS = ptr MIB_TCPSTATS
+    PMIB_TCPSTATS = ptr MIB_TCPSTATS
 
-  MIB_UDPSTATS {.importc: "MIB_UDPSTATS", header: "Iphlpapi.h", incompleteStruct.} = object
-    dwInDatagrams: DWORD
-    dwNoPorts: DWORD
-    dwInErrors: DWORD
-    dwOutDatagrams: DWORD
-    dwNumAddrs: DWORD
+    MIB_UDPSTATS {.importc: "MIB_UDPSTATS", header: "Iphlpapi.h", incompleteStruct.} = object
+      dwInDatagrams: DWORD
+      dwNoPorts: DWORD
+      dwInErrors: DWORD
+      dwOutDatagrams: DWORD
+      dwNumAddrs: DWORD
 
-  PMIB_UDPSTATS = ptr MIB_UDPSTATS
+    PMIB_UDPSTATS = ptr MIB_UDPSTATS
 
 proc memoryConfig(plugin: Plugin): string =
   ## Get the plugin graph configuration.
   result = NetworkPluginConfig
 
-proc GetTcpStatisticsEx(pStats: PMIB_TCPSTATS, dwFamily: DWORD): DWORD {.stdcall, dynlib: "Iphlpapi", importc: "GetTcpStatistics".}
-  ## The GetTcpStatisticsEx function retrieves the Transmission Control Protocol (TCP) statistics for the current computer.
-  ## The GetTcpStatisticsEx function differs from the GetTcpStatistics function in that GetTcpStatisticsEx also supports the Internet Protocol version 6 (IPv6) protocol family.
+when defined(windows):
+  proc GetTcpStatisticsEx(pStats: PMIB_TCPSTATS, dwFamily: DWORD): DWORD {.stdcall, dynlib: "Iphlpapi", importc: "GetTcpStatistics".}
+    ## The GetTcpStatisticsEx function retrieves the Transmission Control Protocol (TCP) statistics for the current computer.
+    ## The GetTcpStatisticsEx function differs from the GetTcpStatistics function in that GetTcpStatisticsEx also supports the Internet Protocol version 6 (IPv6) protocol family.
 
-proc GetUdpStatisticsEx(pStats: PMIB_UDPSTATS, dwFamily: DWORD): DWORD {.stdcall, dynlib: "Iphlpapi", importc: "GetUdpStatisticsEx".}
-  ## The GetUdpStatisticsEx function retrieves the User Datagram Protocol (UDP) statistics for the current computer.
-  ## The GetUdpStatisticsEx function differs from the GetUdpStatistics function in that GetUdpStatisticsEx also supports the Internet Protocol version 6 (IPv6) protocol family. 
+  proc GetUdpStatisticsEx(pStats: PMIB_UDPSTATS, dwFamily: DWORD): DWORD {.stdcall, dynlib: "Iphlpapi", importc: "GetUdpStatisticsEx".}
+    ## The GetUdpStatisticsEx function retrieves the User Datagram Protocol (UDP) statistics for the current computer.
+    ## The GetUdpStatisticsEx function differs from the GetUdpStatistics function in that GetUdpStatisticsEx also supports the Internet Protocol version 6 (IPv6) protocol family. 
 
-proc memoryValues(plugin: Plugin): string =
-  ## Get the plugin values.
-  var tcp4Stats: MIB_TCPSTATS
-  var tcp6Stats: MIB_TCPSTATS
-  var udp4Stats: MIB_UDPSTATS
-  var udp6Stats: MIB_UDPSTATS
+  proc memoryValues(plugin: Plugin): string =
+    ## Get the plugin values.
+    var tcp4Stats: MIB_TCPSTATS
+    var tcp6Stats: MIB_TCPSTATS
+    var udp4Stats: MIB_UDPSTATS
+    var udp6Stats: MIB_UDPSTATS
 
-  if GetTcpStatisticsEx(addr tcp4Stats, AF_INET) != NO_ERROR:
-    raiseOSError(osLastError())
+    if GetTcpStatisticsEx(addr tcp4Stats, AF_INET) != NO_ERROR:
+      raiseOSError(osLastError())
 
-  if GetTcpStatisticsEx(addr tcp6Stats, AF_INET6) != NO_ERROR:
-    raiseOSError(osLastError())
+    if GetTcpStatisticsEx(addr tcp6Stats, AF_INET6) != NO_ERROR:
+      raiseOSError(osLastError())
 
-  if GetUdpStatisticsEx(addr udp4Stats, AF_INET) != NO_ERROR:
-    raiseOSError(osLastError())
+    if GetUdpStatisticsEx(addr udp4Stats, AF_INET) != NO_ERROR:
+      raiseOSError(osLastError())
 
-  if GetUdpStatisticsEx(addr udp6Stats, AF_INET6) != NO_ERROR:
-    raiseOSError(osLastError())
+    if GetUdpStatisticsEx(addr udp6Stats, AF_INET6) != NO_ERROR:
+      raiseOSError(osLastError())
 
-  result = "down.value " & $(tcp4Stats.dwInSegs + tcp6Stats.dwInSegs + udp4Stats.dwInDatagrams + udp6Stats.dwInDatagrams) & "\L" &
-    "up.value " & $(tcp4Stats.dwOutSegs + tcp6Stats.dwOutSegs + udp4Stats.dwOutDatagrams + udp6Stats.dwOutDatagrams) & "\L" &
-    ".\L"
+    let totalDown: int64 = tcp4Stats.dwInSegs + tcp6Stats.dwInSegs + udp4Stats.dwInDatagrams + udp6Stats.dwInDatagrams
+    let totalUp: int64 = tcp4Stats.dwOutSegs + tcp6Stats.dwOutSegs + udp4Stats.dwOutDatagrams + udp6Stats.dwOutDatagrams
+
+    result = "down.value " & $totalDown & "\L" &
+      "up.value " & $totalUp & "\L.\L"
+elif defined(posix):
+  proc memoryValues(plugin: Plugin): string =
+    ## Get the plugin values.
+    result = "down.value 0\L" &
+      "up.value 0\L" &
+      ".\L"
+else:
+  {.error: "Network plugin is not implemented for your OS".}
 
 proc initNetworkPlugin*(): Plugin =
   ## Create a new instance of the memory plugin to get current system memory status.
