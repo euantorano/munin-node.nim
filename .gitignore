@@ -1,0 +1,34 @@
+*
+!**/
+!*.*
+
+!LICENSE
+
+# Cache
+nimcache/
+
+*.o
+*.obj
+*.ilk
+*.pdb
+*.dll
+*.exe
+*.so
+*.dylib
+*.zip
+*.iss
+*.log
+
+# iOS specific wildcards.
+*.mode1v3
+*.pbxuser
+*.perspective
+*.perspectivev3
+*.swp
+.DS_Store
+project.xcworkspace/
+xcuserdata/
+
+# Private directories and files (IDEs)
+.*/
+~*
