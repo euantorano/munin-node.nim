@@ -23,7 +23,7 @@ proc uptimeConfig(plugin: Plugin): string =
   ## Get the plugin graph configuration.
   result = UptimePluginConfig
 
-proc sysctl(name: pointer, namelen: cuint, oldp: ptr Timespec, oldlenp: ptr cint, newp: pointer, newlen: cint): cint {.importc: "sysctl", header: "sys/sysctl.h".}
+proc sysctl(name: pointer, namelen: cuint, oldp: ptr Timespec, oldlenp: ptr cint, newp: pointer, newlen: cint): cint {.importc: "sysctl", header: "<sys/sysctl.h>".}
 
 proc uptimeValues(plugin: Plugin): string =
   ## Get the plugin values.

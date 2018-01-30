@@ -5,7 +5,11 @@ import ../plugin
 when defined(windows):
   include ./network/network_windows
 else:
-  {.error: "The network plugin does not support your OS".}
+  {.warning: "The network plugin does not support your OS".}
+
+  proc networkConfig(p: Plugin) : string = ""
+
+  proc networkValues(p: Plugin): string = ""
 
 const
   NetworkPluginName* = "network"

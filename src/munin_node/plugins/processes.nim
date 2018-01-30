@@ -4,8 +4,10 @@ import ../plugin
 
 when defined(windows):
   include ./processes/processes_windows
+elif defined(linux):
+  include ./processes/processes_linux
 else:
-  {.error: "The uptime plugin does not support your OS".}
+  {.error: "The processes plugin does not support your OS".}
 
 const
   ProcessesPluginName* = "processes"

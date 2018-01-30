@@ -4,6 +4,8 @@ import ../plugin
 
 when defined(windows):
   include ./uptime/uptime_windows
+elif defined(linux):
+  include ./uptime/uptime_linux
 elif defined(posix):
   include ./uptime/uptime_posix
 else:

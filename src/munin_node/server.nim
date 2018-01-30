@@ -42,7 +42,7 @@ proc initServer*(port: uint16 = DefaultListenAddress, hostname: string = ""): Se
     # TODO: This should happen in the `main` proc in `../munin_node` and be based upon configuration
     plugins = newTable[string, Plugin]()
     plugins.add(MemoryPluginName, newMemoryPlugin())
-    plugins.add(NetworkPluginName, newNetworkPlugin())
+    #plugins.add(NetworkPluginName, newNetworkPlugin())
     plugins.add(ProcessesPluginName, newProcessesPlugin())
     plugins.add(UptimePluginName, newUptimePlugin())
 

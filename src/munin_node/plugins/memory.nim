@@ -4,6 +4,8 @@ import ../plugin
 
 when defined(windows):
   include ./memory/memory_windows
+elif defined(linux):
+  include ./memory/memory_linux
 else:
   {.error: "The memory plugin does not support your OS".}
 
