@@ -10,6 +10,17 @@ else:
 const
   NetworkPluginName* = "network"
 
-proc initNetworkPlugin*(): Plugin =
+type
+  NetworkPlugin* = ref NetworkPluginObj
+    ## A plugin to show the traffic of the network interfaces.
+
+  NetworkPluginObj* = object of PluginObj
+    ## A plugin to show the traffic of the network interfaces.
+
+proc newNetworkPlugin*(): NetworkPlugin =
   ## Create a new instance of the memory plugin to get current system memory status.
-  result = initPlugin(NetworkPluginName, GetConfigFunction(memoryConfig), GetValuesFunction(memoryValues))
+  result = NetworkPlugin(
+    name: NetworkPluginName,
+    configFunction: networkConfig,
+    valuesFunction: networkValues
+  )

@@ -10,6 +10,17 @@ else:
 const
   MemoryPluginName* = "memory"
 
-proc initMemoryPlugin*(): Plugin =
+type
+  MemoryPlugin* = ref MemoryPluginObj
+    ## A plugin to show what the machine uses its memory for.
+
+  MemoryPluginObj* = object of PluginObj
+    ## A plugin to show what the machine uses its memory for.
+
+proc newMemoryPlugin*(): MemoryPlugin =
   ## Create a new instance of the memory plugin to get current system memory status.
-  result = initPlugin(MemoryPluginName, GetConfigFunction(memoryConfig), GetValuesFunction(memoryValues))
+  result = MemoryPlugin(
+    name: MemoryPluginName,
+    configFunction: memoryConfig,
+    valuesFunction: memoryValues
+  )

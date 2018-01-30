@@ -12,6 +12,17 @@ else:
 const
   UptimePluginName* = "uptime"
 
-proc initUptimePlugin*(): Plugin =
-  ## Create a new instance of the uptime plugin to get the uptime of the system.
-  result = initPlugin(UptimePluginName, GetConfigFunction(uptimeConfig), GetValuesFunction(uptimeValues))
+type
+  UptimePlugin* = ref UptimePluginObj
+    ## A plugin to show the traffic of the network interfaces.
+
+  UptimePluginObj* = object of PluginObj
+    ## A plugin to show the traffic of the network interfaces.
+
+proc newUptimePlugin*(): UptimePlugin =
+  ## Create a new instance of the memory plugin to get current system memory status.
+  result = UptimePlugin(
+    name: UptimePluginName,
+    configFunction: uptimeConfig,
+    valuesFunction: uptimeValues
+  )

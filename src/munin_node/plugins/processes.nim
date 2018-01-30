@@ -10,6 +10,17 @@ else:
 const
   ProcessesPluginName* = "processes"
 
-proc initProcessesPlugin*(): Plugin =
-  ## Create a new instance of the processes plugin to get the current process and thread statistics.
-  result = initPlugin(ProcessesPluginName, GetConfigFunction(processesConfig), GetValuesFunction(processesValues))
+type
+  ProcessesPlugin* = ref ProcessesPluginObj
+    ## A plugin to show the traffic of the network interfaces.
+
+  ProcessesPluginObj* = object of PluginObj
+    ## A plugin to show the traffic of the network interfaces.
+
+proc newProcessesPlugin*(): ProcessesPlugin =
+  ## Create a new instance of the memory plugin to get current system memory status.
+  result = ProcessesPlugin(
+    name: ProcessesPluginName,
+    configFunction: processesConfig,
+    valuesFunction: processesValues
+  )

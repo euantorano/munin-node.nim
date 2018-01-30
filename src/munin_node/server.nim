@@ -38,13 +38,12 @@ proc initServer*(port: uint16 = DefaultListenAddress, hostname: string = ""): Se
   )
 
   if isNil(plugins):
-    # TODO: Automate this - could be done by a macro?
-    plugins = newTable[string, Plugin](@[
-      (MemoryPluginName, initMemoryPlugin()),
-      (NetworkPluginName, initNetworkPlugin()),
-      (ProcessesPluginName, initProcessesPlugin()),
-      (UptimePluginName, initUptimePlugin())
-    ])
+    # TODO: This should happen in the `main` proc in `../munin_node` and be based upon configuration
+    plugins = newTable[string, Plugin]()
+    plugins.add(MemoryPluginName, newMemoryPlugin())
+    plugins.add(NetworkPluginName, newNetworkPlugin())
+    plugins.add(ProcessesPluginName, newProcessesPlugin())
+    plugins.add(UptimePluginName, newUptimePlugin())
 
   result.sock.setSockOpt(OptReuseAddr, true)
   result.sock.bindAddr(Port(port))

@@ -53,7 +53,7 @@ type
 
   PMIB_UDPSTATS = ptr MIB_UDPSTATS
 
-proc memoryConfig(plugin: Plugin): string =
+proc networkConfig(plugin: Plugin): string =
   ## Get the plugin graph configuration.
   result = NetworkPluginConfig
 
@@ -65,7 +65,7 @@ proc GetUdpStatisticsEx(pStats: PMIB_UDPSTATS, dwFamily: DWORD): DWORD {.stdcall
   ## The GetUdpStatisticsEx function retrieves the User Datagram Protocol (UDP) statistics for the current computer.
   ## The GetUdpStatisticsEx function differs from the GetUdpStatistics function in that GetUdpStatisticsEx also supports the Internet Protocol version 6 (IPv6) protocol family. 
 
-proc memoryValues(plugin: Plugin): string =
+proc networkValues(plugin: Plugin): string =
   ## Get the plugin values.
   var tcp4Stats: MIB_TCPSTATS
   var tcp6Stats: MIB_TCPSTATS
