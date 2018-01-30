@@ -56,25 +56,23 @@ proc processesValues(plugin: Plugin): string =
     numThreads = 0
 
   let snapShot: HANDLE = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)
-  if snapShot != INVALID_HANDLE_VALUE:
-    try:
-      var entry: PROCESSENTRY32
-      entry.dwSize = DWORD(sizeof(entry))
-
-      var success = Process32First(snapShot, addr entry)
-
-      if success == 0:
-        raiseOSError(osLastError())
-
-      while success != 0:
-        inc(numProcesses, 1)
-        inc(numThreads, int(entry.cntThreads))
-
-        success = Process32Next(snapShot, addr entry)
-    finally:
-      discard closeHandle(snapShot)
-  else:
+  if snapShot == INVALID_HANDLE_VALUE:
     raiseOSError(osLastError())
+
+  defer: discard closeHandle(snapShot)
+
+  var entry: PROCESSENTRY32
+  entry.dwSize = DWORD(sizeof(entry))
+
+  var success = Process32First(snapShot, addr entry)
+  if success == 0:
+    raiseOSError(osLastError())
+
+  while success != 0:
+    inc(numProcesses, 1)
+    inc(numThreads, int(entry.cntThreads))
+
+    success = Process32Next(snapShot, addr entry)
 
   result = "processes.value " & $numProcesses & "\L" &
     "threads.value " & $numThreads & "\L" &

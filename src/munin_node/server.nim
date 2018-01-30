@@ -58,8 +58,8 @@ proc listPlugins(): string {.inline.} =
 
     for pluginName in plugins.keys():
       pluginList.add(pluginName & " ")
-
-      pluginList.add("\L")
+    
+    pluginList.add("\L")
 
   result = pluginList
 
@@ -92,35 +92,31 @@ proc processConfigRequest(request: string): string =
     result = UnknownServiceResponse
 
 proc receiveFromClient(server: Server, address: string, client: AsyncSocket) {.async.} =
-  var buffer = newFutureVar[string]("munin_node.server.receiveFromClient")
-  buffer.mget() = newStringOfCap(BufferSize)
-
-  var response: string
+  var
+    response: string
+    line: string
 
   while server.listen and not client.isClosed():
-    buffer.mget.setLen(0)
-    buffer.clean()
-
-    await client.recvLineInto(buffer)
+    line = await client.recvLine()
 
     # can't simply use a `case` statement here as commands usually have a suffix such as `config df`
-    if len(buffer.mget) == 0:
+    if len(line) == 0:
       break
-    elif len(buffer.mget) >= 4 and buffer.mget[0..3] == "quit":
+    elif len(line) >= 4 and line[0..3] == "quit":
       break
-    elif len(buffer.mget) >= 4 and buffer.mget[0..3] == "list":
+    elif len(line) >= 4 and line[0..3] == "list":
       response = listPlugins()
-    elif len(buffer.mget) >= 5 and buffer.mget[0..4] == "nodes":
+    elif len(line) >= 5 and line[0..4] == "nodes":
       # This version only supports one node
       response = server.hostname & "\L.\L"
-    elif len(buffer.mget) >= 5 and buffer.mget[0..4] == "fetch":
-      response = processFetchRequest(buffer.mget)
-    elif len(buffer.mget) >= 6 and buffer.mget[0..5] == "config":
-      response = processConfigRequest(buffer.mget)
-    elif len(buffer.mget) >= 7 and buffer.mget[0..6] == "version":
+    elif len(line) >= 5 and line[0..4] == "fetch":
+      response = processFetchRequest(line)
+    elif len(line) >= 6 and line[0..5] == "config":
+      response = processConfigRequest(line)
+    elif len(line) >= 7 and line[0..6] == "version":
       response = "munin node on " & server.hostname & " version: " & VersionString & "\L"
     else:
-      warn("Received unknown command from client '", address, "': ", buffer.mget)
+      warn("Received unknown command from client '", address, "': ", line)
       response = UnknownCommandResponse
 
     await client.send(response)
