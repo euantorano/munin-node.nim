@@ -2,10 +2,17 @@
 
 import munin_node/server
 
-import asyncdispatch
+import asyncdispatch, logging
+
+proc initLogging() =
+  ## Initialise logging handlers to log information about the munin node's status.
+  var console = newConsoleLogger(fmtStr=verboseFmtStr)
+
+  addHandler(console)
 
 proc main() =
   # TODO: configuration, windows sevrice, command line handling, etc.
+  initLogging()
 
   let server = initServer()
 

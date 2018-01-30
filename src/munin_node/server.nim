@@ -2,7 +2,7 @@
 
 import ./utils, ./plugin, ./plugins/processes, ./plugins/memory, ./plugins/network, ./plugins/uptime
 
-import asyncdispatch, asyncnet, nativesockets, tables
+import asyncdispatch, asyncnet, nativesockets, tables, logging
 
 const
   DefaultListenAddress* = 4949'u16
@@ -28,6 +28,7 @@ type
 
 var
   plugins {.threadvar.}: TableRef[string, Plugin]
+  pluginList {.threadvar.}: string
 
 proc initServer*(port: uint16 = DefaultListenAddress, hostname: string = ""): Server =
   ## Intiailise a new server and bind it, ready to accept incoming connections.
@@ -49,25 +50,28 @@ proc initServer*(port: uint16 = DefaultListenAddress, hostname: string = ""): Se
   result.sock.bindAddr(Port(port))
   result.sock.listen()
 
-  echo "Server started listening on port ", port, " with hostname: ", result.hostname
+  notice("Server started listening on port ", port, " with hostname: ", result.hostname)
 
-proc listPlugins(): string =
-  result = ""
+proc listPlugins(): string {.inline.} =
+  if isNil(pluginList):
+    pluginList = ""
 
-  for pluginName in plugins.keys():
-    result.add(pluginName & " ")
+    for pluginName in plugins.keys():
+      pluginList.add(pluginName & " ")
 
-  result.add("\L")
+      pluginList.add("\L")
+
+  result = pluginList
 
 proc processFetchRequest(request: string): string =
   let startIndex = if len(request) > 6 and request[5] == ' ': 6 else: 5
-  let requestedConfig = request[startIndex..^1]
+  let plugin = request[startIndex..^1]
 
-  if requestedConfig in plugins:
+  if plugin in plugins:
     try:
-      result = plugins[requestedConfig].values()
+      result = plugins[plugin].values()
     except:
-      echo "Unknown exception ", repr(getCurrentException()) , ": ", getCurrentExceptionMsg()
+      warn("Error handling fetch request for plugin '", plugin , "': ", getCurrentExceptionMsg())
 
       result = UnknownErrorResponse
   else:
@@ -75,13 +79,13 @@ proc processFetchRequest(request: string): string =
 
 proc processConfigRequest(request: string): string =
   let startIndex = if len(request) > 7 and request[6] == ' ': 7 else: 6
-  let requestedConfig = request[startIndex..^1]
+  let plugin = request[startIndex..^1]
 
-  if requestedConfig in plugins:
+  if plugin in plugins:
     try:
-      result = plugins[requestedConfig].config()
+      result = plugins[plugin].config()
     except:
-      echo "Unknown exception ", repr(getCurrentException()) , ": ", getCurrentExceptionMsg()
+      warn("Error handling config request for plugin '", plugin , ": ", getCurrentExceptionMsg())
 
       result = UnknownErrorResponse
   else:
@@ -98,8 +102,6 @@ proc receiveFromClient(server: Server, address: string, client: AsyncSocket) {.a
     buffer.clean()
 
     await client.recvLineInto(buffer)
-
-    echo "Received line from client '", address, "': ", buffer.mget
 
     # can't simply use a `case` statement here as commands usually have a suffix such as `config df`
     if len(buffer.mget) == 0:
@@ -118,19 +120,18 @@ proc receiveFromClient(server: Server, address: string, client: AsyncSocket) {.a
     elif len(buffer.mget) >= 7 and buffer.mget[0..6] == "version":
       response = "munin node on " & server.hostname & " version: " & VersionString & "\L"
     else:
+      warn("Received unknown command from client '", address, "': ", buffer.mget)
       response = UnknownCommandResponse
 
     await client.send(response)
 
 proc processClient(server: Server, address: string, client: AsyncSocket) {.async.} =
   try:
-    echo "Accepted client from address: ", address
+    debug("Accepted incoming connection from address: ", address)
 
     await client.send("# munin node at " & server.hostname & "\L")
     await server.receiveFromClient(address, client)
   finally:
-    echo "Lost connection to client from address: ", address
-
     client.close()
 
 proc run*(server: Server) {.async.} =
